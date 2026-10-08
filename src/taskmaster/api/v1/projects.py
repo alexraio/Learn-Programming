@@ -8,11 +8,17 @@ from sqlalchemy.orm import Session
 from taskmaster.api.dependencies import get_current_user
 from taskmaster.core.database import get_db
 from taskmaster.models.user import User
-from taskmaster.schemas.project import ProjectCreate, ProjectResponse, ProjectUpdate
+from taskmaster.schemas.project import (
+    ProjectCreate,
+    ProjectResponse,
+    ProjectStatsResponse,
+    ProjectUpdate,
+)
 from taskmaster.services.project_service import (
     create_project,
     delete_project,
     get_project,
+    get_project_stats,
     get_user_projects,
     update_project,
 )
@@ -98,3 +104,17 @@ def remove_project(
 ) -> None:
     """Elimina definitivamente un progetto e i relativi task."""
     delete_project(db, project_id=project_id, owner_id=current_user.id)
+
+
+@router.get(
+    "/{project_id}/stats",
+    response_model=ProjectStatsResponse,
+    summary="Recupera le statistiche di avanzamento del progetto",
+)
+def get_single_project_stats(
+    project_id: int,
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+) -> ProjectStatsResponse:
+    """Restituisce il riepilogo dello stato dei task e la percentuale di completamento."""
+    return get_project_stats(db, project_id=project_id, owner_id=current_user.id)

@@ -4,8 +4,10 @@ from sqlalchemy import select
 from sqlalchemy.orm import Session
 
 from taskmaster.core.exceptions import EntityNotFoundError
+from taskmaster.models.enums import TaskStatus
 from taskmaster.models.project import Project
-from taskmaster.schemas.project import ProjectCreate, ProjectUpdate
+from taskmaster.models.task import Task
+from taskmaster.schemas.project import ProjectCreate, ProjectStatsResponse, ProjectUpdate
 
 
 def create_project(db: Session, project_in: ProjectCreate, owner_id: int) -> Project:
@@ -58,3 +60,28 @@ def delete_project(db: Session, project_id: int, owner_id: int) -> None:
     project = get_project(db, project_id, owner_id)
     db.delete(project)
     db.commit()
+
+
+def get_project_stats(db: Session, project_id: int, owner_id: int) -> ProjectStatsResponse:
+    """Calcola le statistiche e la percentuale di completamento dei task di un progetto."""
+    project = get_project(db, project_id, owner_id)
+    stmt = select(Task).where(Task.project_id == project.id)
+    tasks = list(db.scalars(stmt).all())
+
+    total = len(tasks)
+    todo_count = sum(1 for t in tasks if t.status == TaskStatus.TODO)
+    in_progress_count = sum(1 for t in tasks if t.status == TaskStatus.IN_PROGRESS)
+    done_count = sum(1 for t in tasks if t.status == TaskStatus.DONE)
+    archived_count = sum(1 for t in tasks if t.status == TaskStatus.ARCHIVED)
+
+    rate = round((done_count / total * 100.0), 2) if total > 0 else 0.0
+
+    return ProjectStatsResponse(
+        project_id=project.id,
+        total_tasks=total,
+        todo_count=todo_count,
+        in_progress_count=in_progress_count,
+        done_count=done_count,
+        archived_count=archived_count,
+        completion_rate=rate,
+    )
