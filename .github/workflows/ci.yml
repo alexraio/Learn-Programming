@@ -1,0 +1,54 @@
+name: CI Pipeline
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+# Evita esecuzioni ridondanti su commit multipli nello stesso PR
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  quality-and-tests:
+    name: Lint, Type Check & Test Suite
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        python-version: ["3.12"]
+
+    steps:
+      - name: 📥 Checkout repository
+        uses: actions/checkout@v4
+
+      - name: ⚡ Setup uv (Astral)
+        uses: astral-sh/setup-uv@v5
+        with:
+          version: "latest"
+          enable-cache: true
+          cache-dependency-glob: "uv.lock"
+
+      - name: 🐍 Install Python ${{ matrix.python-version }}
+        run: uv python install ${{ matrix.python-version }}
+
+      - name: 📦 Install project dependencies
+        run: uv sync --all-groups
+
+      - name: 🔍 Ruff Linter
+        run: uv run ruff check .
+
+      - name: 🎨 Ruff Formatter Check
+        run: uv run ruff format --check .
+
+      - name: 🛡️ Mypy Static Type Checking
+        run: uv run mypy src tests
+
+      - name: 🧪 Run Pytest with Coverage Gate (fail-under=80%)
+        run: uv run pytest --cov=src/taskmaster --cov-report=term-missing --cov-report=xml
+
+      - name: 🎯 Run Dedicated Regression Test Suite
+        run: uv run pytest -m regression -v
