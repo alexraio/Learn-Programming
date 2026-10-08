@@ -9,7 +9,7 @@ Questo documento tiene traccia dell'avanzamento giorno per giorno, dei concetti 
 * [Sessione 1 (2026-10-08): Fondamenta, Scaffolding & Setup IDE Antigravity](#sessione-1-2026-10-08-fondamenta-scaffolding--setup-ide-antigravity)
 * [Sessione 2 (2026-10-08): Architettura Core, Modelli SQLAlchemy 2.0 & Auth JWT](#sessione-2-2026-10-08-architettura-core-modelli-sqlalchemy-20--auth-jwt)
 * [Sessione 3 (2026-10-08): Testing Strategy, Laboratorio di Regression Testing & Parametri](#sessione-3-2026-10-08-testing-strategy-laboratorio-di-regression-testing--parametri)
-* *Sessione 4: Git Flow & Pipeline CI/CD con GitHub Actions (In programma)*
+* [Sessione 4 (2026-10-08): Git Flow, Pull Request Lifecycle & Pipeline CI/CD con GitHub Actions](#sessione-4-2026-10-08-git-flow-pull-request-lifecycle--pipeline-cicd-con-github-actions)
 * *Sessione 5: Documentazione, Containerizzazione & Rilascio (In programma)*
 
 ---
@@ -170,5 +170,61 @@ Questo documento tiene traccia dell'avanzamento giorno per giorno, dei concetti 
 - [x] Esecuzione verifica selettiva: `uv run pytest -m regression`
 - [x] Esecuzione suite completa: 32 test passati con copertura al 95.68%
 - [x] Commit Git semantico (`test: add regression test suite and advanced parameterized testing`)
+
+---
+
+## Sessione 4 (2026-10-08): Git Flow, Pull Request Lifecycle & Pipeline CI/CD con GitHub Actions
+
+### 🎯 Obiettivi della Sessione
+1. Creare la pipeline completa di automazione CI/CD con **GitHub Actions** (`.github/workflows/ci.yml`).
+2. Configurare l'action ufficiale Astral `astral-sh/setup-uv@v5` con caching automatico delle dipendenze basato sul lockfile.
+3. Definire i gatekeeper di build:
+   - Ruff Linter & Formatter (`check` e `format --check`)
+   - Mypy Static Type Checking
+   - Pytest con verifica di copertura minima ($fail\_under = 80\%$)
+   - Esecuzione obbligatoria della suite di regressione (`pytest -m regression`)
+4. Creare il template standard per le Pull Request (`.github/pull_request_template.md`).
+5. Simulare il ciclo di vita reale del Git Flow professionale:
+   - Creazione branch isolato `feature/project-stats`
+   - Sviluppo della nuova funzionalità (endpoint metriche e tasso di completamento progetti)
+   - Verifica dei test locali sul branch
+   - Commit semantico sul branch
+   - Merge su `main` tramite simulazione PR (`--no-ff`) ed eliminazione del branch completato
+
+---
+
+### 💡 Concetti Professionali Appresi
+
+#### 1. Perché la CI/CD deve girare su macchine "vergini" (Ubuntu Runner)?
+* Il classico errore "sulla mia macchina funziona" (*works on my machine*) si verifica quando il computer dello sviluppatore ha file temporanei, variabili d'ambiente globali o librerie installate fuori dal lockfile.
+* GitHub Actions avvia una macchina virtuale Ubuntu completamente pulita a ogni Push o Pull Request, clona il repository, installa solo ed esclusivamente ciò che è presente in `uv.lock` e lancia i test. Se passa in CI, c'è la certezza matematica che il software sia riproducibile ovunque.
+
+#### 2. Caching delle Dipendenze con `astral-sh/setup-uv`
+* Scaricare decine di pacchetti a ogni commit spreca minuti e banda. Con `enable-cache: true` e `cache-dependency-glob: "uv.lock"`, GitHub memorizza la cache delle wheel scaricate e la invalida solo se il file `uv.lock` viene effettivamente modificato. L'installazione delle dipendenze passa da 20 secondi a meno di 1 secondo.
+
+#### 3. Git Flow e Pull Request Template
+* Non si sviluppa mai direttamente sul ramo `main`. Il ramo `main` rappresenta lo stato stabile e pronto per il rilascio.
+* L'apertura di un branch dedicato (`feature/...` o `bugfix/...`) consente di lavorare in sicurezza senza disturbare il codice principale.
+* Il template di Pull Request (`pull_request_template.md`) costringe lo sviluppatore a fare una retrospettiva di autovalutazione prima di chiedere la revisione del codice (verifica checklist dei test, assenza di warning, aggiunta di regression test).
+
+---
+
+### 🛠️ Stato del Progetto al Termine della Sessione 4
+- Pipeline GitHub Actions configurata e pronta all'uso su qualsiasi remote GitHub.
+- Endpoint nuovo aggiunto: `GET /api/v1/projects/{id}/stats` con calcolo della `completion_rate`.
+- Test suite espansa a **33 test passati** con **95.86% di copertura**.
+- Albero Git arricchito con branch topologico e merge commit documentato (`git log --graph`).
+
+---
+
+### 📋 Checklist di Chiusura Sessione 4
+- [x] Configurazione workflow `.github/workflows/ci.yml` (Ruff, Mypy, Pytest con coverage, Regression)
+- [x] Creazione `.github/pull_request_template.md`
+- [x] Creazione branch feature `feature/project-stats`
+- [x] Implementazione endpoint `GET /api/v1/projects/{id}/stats` e test di integrazione
+- [x] Commit semantico su branch feature
+- [x] Merge PR con `--no-ff` su branch `main` ed eliminazione pulita del branch
+- [x] Verifica integrità della suite completa sul branch `main` (33 test verdi, 95.86% coverage)
+
 
 
