@@ -48,6 +48,9 @@ dmypy.json
 
 # Databases & local persistent state
 *.db
+*.db-journal
+*.db-shm
+*.db-wal
 *.sqlite
 *.sqlite3
 
