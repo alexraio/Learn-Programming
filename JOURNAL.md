@@ -10,7 +10,7 @@ Questo documento tiene traccia dell'avanzamento giorno per giorno, dei concetti 
 * [Sessione 2 (2026-10-08): Architettura Core, Modelli SQLAlchemy 2.0 & Auth JWT](#sessione-2-2026-10-08-architettura-core-modelli-sqlalchemy-20--auth-jwt)
 * [Sessione 3 (2026-10-08): Testing Strategy, Laboratorio di Regression Testing & Parametri](#sessione-3-2026-10-08-testing-strategy-laboratorio-di-regression-testing--parametri)
 * [Sessione 4 (2026-10-08): Git Flow, Pull Request Lifecycle & Pipeline CI/CD con GitHub Actions](#sessione-4-2026-10-08-git-flow-pull-request-lifecycle--pipeline-cicd-con-github-actions)
-* *Sessione 5: Documentazione, Containerizzazione & Rilascio (In programma)*
+* [Sessione 5 (2026-10-08): Documentazione, Containerizzazione Docker & Rilascio Finale v1.0.0](#sessione-5-2026-10-08-documentazione-containerizzazione-docker--rilascio-finale-v100)
 
 ---
 
@@ -225,6 +225,66 @@ Questo documento tiene traccia dell'avanzamento giorno per giorno, dei concetti 
 - [x] Commit semantico su branch feature
 - [x] Merge PR con `--no-ff` su branch `main` ed eliminazione pulita del branch
 - [x] Verifica integrità della suite completa sul branch `main` (33 test verdi, 95.86% coverage)
+
+---
+
+## Sessione 5 (2026-10-08): Documentazione, Containerizzazione Docker & Rilascio Finale v1.0.0
+
+### 🎯 Obiettivi della Sessione
+1. Creare un **Dockerfile multi-stage** di livello enterprise ottimizzato per la produzione con `uv`.
+2. Configurare `.dockerignore` per isolare il context di compilazione Docker.
+3. Riscrivere e completare il file `README.md` con badge, diagramma architetturale, tabella esaustiva di tutti gli endpoint API e comandi di quickstart locale e containerizzato.
+4. Eseguire tutti i controlli di qualità e taggare formalmente la prima release di produzione: **`v1.0.0`**.
+5. Stilare la retrospettiva finale delle competenze acquisite nel percorso.
+
+---
+
+### 💡 Concetti Professionali Appresi
+
+#### 1. Multi-Stage Dockerfile con `uv`
+* Nei container tradizionali, strumenti pesanti di build (compilatori C, package manager, cache) finivano nell'immagine finale, gonfiando la dimensione oltre 1 GB e aumentando la superficie di attacco CVE.
+* Nel nostro approccio multi-stage:
+  * Lo stage **builder** usa `ghcr.io/astral-sh/uv` per compilare il bytecode e risolvere le dipendenze in `.venv` sfruttando la cache dei layer.
+  * Lo stage **runner** copia solo il virtual environment pulito dentro una base `python:3.12-slim-bookworm`, ottenendo un'immagine leggera e minimale.
+
+#### 2. Sicurezza nei Container: Principio del Minimo Privilegio (Non-Root User)
+* Non si eseguono mai processi web containerizzati come `root`.
+* Nel Dockerfile abbiamo creato un utente dedicato `appuser` a bassi privilegi (`useradd -r -g appuser ...`), a cui appartiene l'applicazione (`--chown=appuser:appuser`). Se un aggressore riuscisse a compromettere l'API, non avrebbe permessi di root all'interno dell'ambiente containerizzato.
+
+#### 3. Healthcheck Nativo Docker
+* L'istruzione `HEALTHCHECK` interroga periodicamente l'endpoint `/health`. Questo consente a Docker Compose, Kubernetes o AWS ECS di sapere se l'applicazione è realmente viva ed escluderla dal routing di rete se bloccata.
+
+---
+
+### 🎓 Retrospettiva Finale del Percorso (Dall'Inizio alla Produzione)
+
+In questo percorso abbiamo trasformato un'idea grezza in un prodotto software professionale completo:
+
+1. **Pianificazione & Brainstorming disciplinato:** Definizione dell'Understanding Lock, mitigazione preventiva dei rischi e Decision Log archiviato in `DESIGN.md`.
+2. **Ambiente IDE Moderno & AI Governance:** Configurazione di Antigravity IDE con `.agents/rules/` e skill dedicate per lavorare con gli LLM ("vibecoding" controllato) senza mai sacrificare la qualità.
+3. **Tooling & Packaging Moderno:** Adozione di `uv` come moderno standard dell'ecosistema Python (risoluzione in millisecondi, virtualenv integrato, lockfile deterministico `uv.lock`).
+4. **Architettura a Strati Pulita:** Separazione netta tra ORM (`models/`), schemi DTO (`schemas/`), logica di dominio (`services/`) e controller HTTP (`api/v1/`), con eccezioni di dominio personalizzate e gestione globale degli errori.
+5. **Testing di Livello Industriale:**
+   * Test isolati in-memory con SQLite `StaticPool` (< 2 secondi per l'intera suite).
+   * Matrice di test parametrizzati con `@pytest.mark.parametrize`.
+   * Suite permanente di **Regression Testing** con approccio TDD (Red-Green-Refactor) a guardia dei bug storici.
+   * Copertura del codice verificata e mantenuta al **95.86%**.
+6. **Git Flow & Continuous Integration (CI/CD):**
+   * Flusso a branch tematici (`feature/...`) con merge non-fast-forward (`--no-ff`) e Conventional Commits.
+   * Pipeline automatica su GitHub Actions con caching dei runner Ubuntu.
+   * Template standardizzato per le Pull Request.
+7. **Packaging & Rilascio:** Dockerfile multi-stage sicuro, documentazione `README.md` ricca e tagging semantico `v1.0.0`.
+
+---
+
+### 📋 Checklist di Chiusura Sessione 5
+- [x] Creazione `Dockerfile` multi-stage con utente non-root `appuser` e `HEALTHCHECK`
+- [x] Configurazione file `.dockerignore`
+- [x] Documentazione finale esaustiva in `README.md`
+- [x] Verifica globale di tutti i 33 test con 95.86% di coverage
+- [x] Registrazione retrospettiva in `JOURNAL.md`
+- [x] Creazione Git Release Tag `v1.0.0`
+
 
 
 
