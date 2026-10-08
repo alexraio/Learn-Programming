@@ -33,3 +33,15 @@ class ProjectResponse(ProjectBase):
     created_at: datetime
 
     model_config = ConfigDict(from_attributes=True)
+
+
+class ProjectStatsResponse(BaseModel):
+    """Schema per le statistiche aggregate di avanzamento di un progetto."""
+
+    project_id: int
+    total_tasks: int
+    todo_count: int
+    in_progress_count: int
+    done_count: int
+    archived_count: int
+    completion_rate: float

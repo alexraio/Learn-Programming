@@ -68,3 +68,72 @@ def test_update_and_delete_project(client: TestClient, auth_headers: dict[str, s
     # Verifica rimozione
     get_resp = client.get(f"/api/v1/projects/{project_id}", headers=auth_headers)
     assert get_resp.status_code == 404
+
+
+@pytest.mark.integration
+def test_project_stats_calculation(client: TestClient, auth_headers: dict[str, str]) -> None:
+    """Verifica il calcolo aggregato delle statistiche e della completion_rate di un progetto."""
+    proj_resp = client.post(
+        "/api/v1/projects",
+        json={"title": "Progetto Statistiche"},
+        headers=auth_headers,
+    )
+    assert proj_resp.status_code == 201
+    project_id = proj_resp.json()["id"]
+
+    # Creazione di 4 task
+    t1 = client.post(
+        "/api/v1/tasks",
+        json={"title": "Task 1", "project_id": project_id},
+        headers=auth_headers,
+    ).json()
+    t2 = client.post(
+        "/api/v1/tasks",
+        json={"title": "Task 2", "project_id": project_id},
+        headers=auth_headers,
+    ).json()
+    client.post(
+        "/api/v1/tasks",
+        json={"title": "Task 3", "project_id": project_id},
+        headers=auth_headers,
+    )
+    client.post(
+        "/api/v1/tasks",
+        json={"title": "Task 4", "project_id": project_id},
+        headers=auth_headers,
+    )
+
+    # Avanziamo t1 in DONE (TODO -> IN_PROGRESS -> DONE)
+    client.patch(
+        f"/api/v1/tasks/{t1['id']}/status",
+        json={"status": "IN_PROGRESS"},
+        headers=auth_headers,
+    )
+    client.patch(
+        f"/api/v1/tasks/{t1['id']}/status",
+        json={"status": "DONE"},
+        headers=auth_headers,
+    )
+
+    # Avanziamo t2 in DONE
+    client.patch(
+        f"/api/v1/tasks/{t2['id']}/status",
+        json={"status": "IN_PROGRESS"},
+        headers=auth_headers,
+    )
+    client.patch(
+        f"/api/v1/tasks/{t2['id']}/status",
+        json={"status": "DONE"},
+        headers=auth_headers,
+    )
+
+    # Chiamata all'endpoint stats
+    stats_resp = client.get(f"/api/v1/projects/{project_id}/stats", headers=auth_headers)
+    assert stats_resp.status_code == 200
+    stats = stats_resp.json()
+
+    assert stats["project_id"] == project_id
+    assert stats["total_tasks"] == 4
+    assert stats["done_count"] == 2
+    assert stats["todo_count"] == 2
+    assert stats["completion_rate"] == 50.0
