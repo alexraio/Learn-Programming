@@ -1,10 +1,20 @@
 """Schemi Pydantic per validazione e serializzazione dei task."""
 
-from datetime import datetime
+from datetime import UTC, datetime
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from taskmaster.models.enums import TaskPriority, TaskStatus
+
+
+def validate_future_date(v: datetime | None) -> datetime | None:
+    """Funzione di validazione riutilizzabile: impedisce date nel passato."""
+    if v is not None:
+        now = datetime.now(UTC)
+        val_tz = v if v.tzinfo is not None else v.replace(tzinfo=UTC)
+        if val_tz < now:
+            raise ValueError("La data di scadenza (due_date) non può essere nel passato.")
+    return v
 
 
 class TaskBase(BaseModel):
@@ -14,6 +24,12 @@ class TaskBase(BaseModel):
     description: str | None = Field(default=None, max_length=2000)
     priority: TaskPriority = Field(default=TaskPriority.MEDIUM)
     due_date: datetime | None = None
+
+    @field_validator("due_date")
+    @classmethod
+    def check_due_date(cls, v: datetime | None) -> datetime | None:
+        """Verifica che la scadenza sia nel futuro."""
+        return validate_future_date(v)
 
 
 class TaskCreate(TaskBase):
@@ -29,6 +45,12 @@ class TaskUpdate(BaseModel):
     description: str | None = Field(default=None, max_length=2000)
     priority: TaskPriority | None = None
     due_date: datetime | None = None
+
+    @field_validator("due_date")
+    @classmethod
+    def check_due_date(cls, v: datetime | None) -> datetime | None:
+        """Verifica che la scadenza aggiornata sia nel futuro."""
+        return validate_future_date(v)
 
 
 class TaskStatusUpdate(BaseModel):

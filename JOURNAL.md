@@ -8,7 +8,7 @@ Questo documento tiene traccia dell'avanzamento giorno per giorno, dei concetti 
 
 * [Sessione 1 (2026-10-08): Fondamenta, Scaffolding & Setup IDE Antigravity](#sessione-1-2026-10-08-fondamenta-scaffolding--setup-ide-antigravity)
 * [Sessione 2 (2026-10-08): Architettura Core, Modelli SQLAlchemy 2.0 & Auth JWT](#sessione-2-2026-10-08-architettura-core-modelli-sqlalchemy-20--auth-jwt)
-* *Sessione 3: Testing Strategy & Laboratorio di Regression Testing (In programma)*
+* [Sessione 3 (2026-10-08): Testing Strategy, Laboratorio di Regression Testing & Parametri](#sessione-3-2026-10-08-testing-strategy-laboratorio-di-regression-testing--parametri)
 * *Sessione 4: Git Flow & Pipeline CI/CD con GitHub Actions (In programma)*
 * *Sessione 5: Documentazione, Containerizzazione & Rilascio (In programma)*
 
@@ -120,4 +120,55 @@ Questo documento tiene traccia dell'avanzamento giorno per giorno, dei concetti 
 - [x] Controller REST v1 con dipendenze e Bearer authentication
 - [x] Test unitari e di integrazione verdi con copertura $\ge 95\%$
 - [x] Commit Git semantico (`feat: implement core domain, sqlalchemy models, jwt auth and task management api`)
+
+---
+
+## Sessione 3 (2026-10-08): Testing Strategy, Laboratorio di Regression Testing & Parametri
+
+### 🎯 Obiettivi della Sessione
+1. Comprendere la distinzione metodologica tra test unitari, test di integrazione e **test di regressione**.
+2. Eseguire un laboratorio pratico di **Regression Testing TDD**:
+   * **Issue #101:** Riproduzione del bug di modifica di un task ARCHIVIATO (RED) ➔ Correzione con protezione immutabilità in `task_service.py` (GREEN).
+   * **Issue #102:** Riproduzione del bug di data scadenza nel passato (RED) ➔ Correzione con `@field_validator` in `schemas/task.py` (GREEN).
+3. Implementare test avanzati a matrice tramite **`@pytest.mark.parametrize`** (`tests/unit/test_parameterized_transitions.py`) per testare in modo esaustivo tutte le 8 transizioni legali e le transizioni vietate.
+4. Eseguire la suite completa e verificare che tutti i 32 test superino i controlli con copertura $\ge 95\%$.
+
+---
+
+### 💡 Concetti Professionali Appresi
+
+#### 1. Che cos'è il Regression Testing e perché è il pilastro del software duraturo?
+* Nel software reale, ogni volta che un bug viene risolto ("fixed"), esiste un rischio concreto che modifiche future, refactoring o nuovi sviluppatori riaprano inavvertitamente quel bug (una **regressione**).
+* **Flusso TDD per Bugfix:**
+  1. Si scrive un test nella suite di regressione (`tests/regression/test_regression_<id>.py`) che riproduce esattamente le condizioni del bug.
+  2. Si verifica che il test fallisca (fase **RED**): questo prova scientificamente l'esistenza del bug.
+  3. Si scrive il codice correttivo minimo indispensabile (fase **GREEN**): il test passa.
+  4. Il test **non viene mai cancellato**: rimane per sempre attivo nella suite automatizzata e nella CI/CD. Se chiunque reintroduce il bug in futuro, la pipeline blocca il rilascio all'istante.
+
+#### 2. Test Parametrizzati con `@pytest.mark.parametrize`
+* Invece di scrivere dozzine di funzioni di test quasi identiche, `@pytest.mark.parametrize` permette di alimentare un singolo corpo di test con una tabella/matrice di casi di input e output attesi.
+* Nel nostro caso, abbiamo testato l'intera matrice della macchina a stati dei task (8 transizioni permesse + 4 combinazioni vietate) con sole due funzioni eleganti e leggibili.
+
+#### 3. Organizzazione delle Fixture e Setup degli Stati
+* Se un test verifica una transizione da `DONE` ad `ARCHIVED`, il task non può essere creato magicamente in `DONE` se le regole di business impongono che nasca in `TODO`. Il test deve orchestrare il percorso legale (`TODO -> IN_PROGRESS -> DONE`) per predisporre lo stato iniziale senza violare le invarianti di dominio.
+
+---
+
+### 🛠️ Stato del Progetto al Termine della Sessione 3
+- Suite di test espansa a **32 test complessivi** eseguiti in soli 1.7 secondi.
+- Suite dedicata ai test di regressione (`tests/regression/`) con marcatore `@pytest.mark.regression`.
+- Copertura del codice salita al **95.68%**.
+- 0 warning di linting o formattazione con Ruff; 0 errori di tipizzazione con Mypy.
+
+---
+
+### 📋 Checklist di Chiusura Sessione 3
+- [x] Creazione suite `tests/regression/` con marcatore Pytest dedicato
+- [x] Scrittura test fallente Issue #101 (immutabilità task archiviati) ➔ Fix nel servizio ➔ Test verde
+- [x] Scrittura test fallente Issue #102 (validazione date scadenze passate) ➔ Fix nello schema ➔ Test verde
+- [x] Implementazione test a matrice parametrizzati `@pytest.mark.parametrize`
+- [x] Esecuzione verifica selettiva: `uv run pytest -m regression`
+- [x] Esecuzione suite completa: 32 test passati con copertura al 95.68%
+- [x] Commit Git semantico (`test: add regression test suite and advanced parameterized testing`)
+
 

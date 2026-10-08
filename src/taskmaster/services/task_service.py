@@ -72,6 +72,14 @@ def update_task_info(
 ) -> Task:
     """Aggiorna i dati anagrafici del task (titolo, descrizione, priorità, scadenza)."""
     task = get_task(db, task_id, current_user_id)
+
+    # I task archiviati sono congelati: non possono essere modificati senza prima riaprirli
+    if task.status == TaskStatus.ARCHIVED:
+        raise InvalidStateTransitionError(
+            current_status=TaskStatus.ARCHIVED.value,
+            target_status="MODIFIED (Impossibile modificare un task archiviato: riaprirlo prima in TODO)",
+        )
+
     update_data = task_in.model_dump(exclude_unset=True)
     for field, value in update_data.items():
         setattr(task, field, value)
